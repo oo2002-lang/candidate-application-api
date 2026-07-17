@@ -5,6 +5,38 @@ I run it. It's written to me, in plain terms, leaning on R (and a bit of Java)
 since that's what I already know. For the deeper "explain and defend it in an
 interview" version, I keep [`WALKTHROUGH.md`](WALKTHROUGH.md).
 
+## Background — how I approached this
+
+My background is biology and R, not web development. For this assessment I used
+an AI assistant (Claude) as a tutor to get up to speed on **FastAPI** and
+**SQLAlchemy** — not to write it blindly, but to translate the concepts onto
+what I already knew. Concretely, that meant:
+
+- **Anchoring FastAPI to R's `plumber` package.** In `plumber` you tag a
+  function with `#* @get /path` and it becomes an API endpoint. FastAPI is the
+  same idea with `@app.get("/api/jobs/")` above a function. Once I saw that
+  mapping, the structure of `main.py` made sense.
+- **Understanding the ORM as typed data frames.** I think of each database table
+  as a `data.frame`/`tibble`; the model classes in `models.py` are those table
+  definitions, and a row is one object. Querying is `dplyr::filter()`, sorting +
+  paging is `arrange()` + `head()`, and the `job_id` foreign key is the column
+  I'd `left_join()` on.
+- **Validation as input guards.** The Pydantic schemas in `schemas.py` do what
+  `stopifnot()` / `checkmate::assert_*` do in R — reject malformed input (bad
+  email, missing field) with a `422` before my endpoint code runs.
+- **Learning REST status codes and why they differ.** `422` = malformed input,
+  `404` = the referenced job doesn't exist, `400` = it exists but the request
+  breaks a rule (applying to a closed job).
+- **Testing with `pytest` as `testthat`.** Each `def test_...` is a
+  `test_that()` block and `assert` is `expect_equal()`; I wrote 16 covering the
+  happy paths and every validation rule.
+
+The design decisions are mine — the `is_active` flag instead of deleting closed
+jobs, simulating the file upload as a path string per the brief, and keeping the
+API schemas separate from the database models. The rest of this file (and
+`WALKTHROUGH.md`) is how I make sure I understand every part well enough to
+explain it.
+
 ## What I built
 
 A small REST API for a job-application system. Two tables and three endpoints:
