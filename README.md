@@ -7,37 +7,19 @@ interview" version, I keep [`WALKTHROUGH.md`](WALKTHROUGH.md).
 
 ## Background — how I approached this
 
-My background is biology and R, not web development. For this assessment I used
-an AI assistant (Claude) as a tutor to get up to speed on **FastAPI** and
-**SQLAlchemy** — not to write it blindly, but to translate the concepts onto
+My background for web development is pimarily in biology, HTML, and R. For this assessment I used
+an AI LLM (Claude Opus 4.8) as a tutor to get up to speed on **FastAPI** and
+**SQLAlchemy** to translate the concepts onto
 what I already knew. Concretely, that meant:
 
-- **Anchoring FastAPI to R's `plumber` package.** In `plumber` you tag a
-  function with `#* @get /path` and it becomes an API endpoint. FastAPI is the
-  same idea with `@app.get("/api/jobs/")` above a function. Once I saw that
-  mapping, the structure of `main.py` made sense.
-- **Understanding the ORM as typed data frames.** I think of each database table
-  as a `data.frame`/`tibble`; the model classes in `models.py` are those table
-  definitions, and a row is one object. Querying is `dplyr::filter()`, sorting +
-  paging is `arrange()` + `head()`, and the `job_id` foreign key is the column
-  I'd `left_join()` on.
-- **Validation as input guards.** The Pydantic schemas in `schemas.py` do what
-  `stopifnot()` / `checkmate::assert_*` do in R — reject malformed input (bad
-  email, missing field) with a `422` before my endpoint code runs.
-- **Learning REST status codes and why they differ.** `422` = malformed input,
-  `404` = the referenced job doesn't exist, `400` = it exists but the request
-  breaks a rule (applying to a closed job).
-- **Testing with `pytest` as `testthat`.** Each `def test_...` is a
-  `test_that()` block and `assert` is `expect_equal()`; I wrote 16 covering the
-  happy paths and every validation rule.
+- FastAPI is basically R's plumber. In plumber you write a function and tag it #* @get /path; here you write a function and put @app.get("/api/jobs/") on the line above it. Same trick. Once that clicked, main.py stopped looking foreign.
+- The ORM is typed data frames. Each table is a data.frame/tibble; the classes in models.py are the column definitions, and a row is one object. db.query(Job).filter(...) is dplyr::filter(), ordering and paging is arrange() then head(), and job_id is the column I'd left_join() on.
+- Validation is guarding inputs. The Pydantic schemas in schemas.py are the stopifnot() / checkmate::assert_* I'd put at the top of an R function. A bad email or missing field gets bounced with a 422 before my code runs.
+- I had to actually learn HTTP status codes. 422 means the input is the wrong shape, 404 means the job you named doesn't exist, 400 means it exists but you're breaking a rule (applying to a closed job).
+- pytest is testthat. Every def test_... is a test_that() block, assert is expect_equal(). I wrote 16..
 
-The design decisions are mine — the `is_active` flag instead of deleting closed
-jobs, simulating the file upload as a path string per the brief, and keeping the
-API schemas separate from the database models. The rest of this file (and
-`WALKTHROUGH.md`) is how I make sure I understand every part well enough to
-explain it.
 
-## What I built
+## Build
 
 A small REST API for a job-application system. Two tables and three endpoints:
 
@@ -51,7 +33,7 @@ Built with **FastAPI** (the web framework), **SQLAlchemy** (the database layer),
 and **SQLite** (the database file). When it's running, `/docs` gives me a
 clickable page to try every endpoint.
 
-## How to think about it (in R terms)
+## How I think about it (in R terms)
 
 The closest R thing to this whole project is the **`plumber`** package. If I've
 written a plumber API, I already get the shape of this:
@@ -71,7 +53,7 @@ Three Python things that look weird coming from R:
 - **`@something` on the line above a function** is a *decorator* — read it like
   plumber's `#*` tag: "attach this to the function below."
 - **`def foo(x):`** defines a function; indentation marks the body (no `{ }`).
-- **`self`** is just "this object" — I can mostly skim past it when reading.
+- **`self`** is just "this object"; I can mostly skim past it when reading.
 
 ## Where everything lives
 
@@ -104,7 +86,7 @@ rename a database column without breaking the JSON that callers rely on.
 `resume_file_path`, `cover_letter`, `submitted_date`
 
 Decisions I made:
-- **`is_active`** — the task says list *active* jobs, so I flag them instead of
+- **`is_active`**: the task says list *active* jobs, so I flag them instead of
   deleting closed ones. It also lets me block applications to a closed job.
 - **`job_id`** is the link between the tables (one job → many applications), the
   same key I'd join on with `merge()` / `left_join()`. The database makes sure it
